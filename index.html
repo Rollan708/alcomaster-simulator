@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1412">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>AlcoMaster: Мировая Энциклопедия & Симулятор Варки</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            copper: {
+              400: '#e59a68',
+              500: '#c86d3b',
+              600: '#a35024',
+              700: '#7e3c1a',
+              900: '#401c0a'
+            },
+            amber: {
+              450: '#f59e0b',
+              550: '#d97706'
+            },
+            distill: {
+              dark: '#120f0d',
+              card: '#1c1714',
+              border: '#332822',
+              input: '#261f1b'
+            }
+          },
+          fontFamily: {
+            sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #120f0d; }
+    ::-webkit-scrollbar-thumb { background: #7e3c1a; border-radius: 2px; }
+    @keyframes bubble {
+      0% { transform: translateY(0) scale(0.8); opacity: 0; }
+      50% { opacity: 0.9; }
+      100% { transform: translateY(-40px) scale(1.2); opacity: 0; }
+    }
+    .bubble-anim { animation: bubble 1.8s infinite ease-in; }
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-[#120f0d] text-[#e8ded6] min-h-screen select-none font-sans overflow-x-hidden pb-16">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-50 bg-[#1c1714]/95 backdrop-blur-md border-b border-[#332822] px-4 py-3 flex items-center justify-between shadow-lg">
+    <div class="flex items-center space-x-2">
+      <span class="text-2xl">⚗️</span>
+      <div>
+        <h1 class="font-bold text-base leading-tight bg-gradient-to-r from-copper-400 to-amber-300 bg-clip-text text-transparent">AlcoMaster World</h1>
+        <p class="text-[9px] text-zinc-400 uppercase tracking-widest font-mono">28 мировых напитков • Симулятор крафта</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-2.5">
+      <div class="flex items-center space-x-1 bg-[#261f1b] border border-[#403129] px-2.5 py-1 rounded-full text-xs font-mono font-bold text-amber-300">
+        <span>🪙</span>
+        <span id="player-balance">1,250</span> ₽
+      </div>
+      <button onclick="toggleSound()" id="sound-btn" class="p-1.5 bg-[#261f1b] hover:bg-[#332822] rounded-full border border-[#403129] text-xs text-copper-400">
+        🔊
+      </button>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <nav class="flex border-b border-[#332822] bg-[#171311] px-2 overflow-x-auto text-xs font-medium scrollbar-none">
+    <button onclick="switchTab('lab')" id="tab-lab" class="tab-btn py-3 px-3.5 flex items-center space-x-1 border-b-2 border-copper-500 text-copper-400 font-bold whitespace-nowrap">
+      <span>🔥</span><span>Цех варки</span>
+    </button>
+    <button onclick="switchTab('recipes')" id="tab-recipes" class="tab-btn py-3 px-3.5 flex items-center space-x-1 border-b-2 border-transparent text-zinc-400 hover:text-zinc-200 whitespace-nowrap">
+      <span>📖</span><span>Алко-Энциклопедия (28)</span>
+    </button>
+    <button onclick="switchTab('cellar')" id="tab-cellar" class="tab-btn py-3 px-3.5 flex items-center space-x-1 border-b-2 border-transparent text-zinc-400 hover:text-zinc-200 whitespace-nowrap">
+      <span>🪵</span><span>Погреб & Бочки</span>
+    </button>
+    <button onclick="switchTab('store')" id="tab-store" class="tab-btn py-3 px-3.5 flex items-center space-x-1 border-b-2 border-transparent text-zinc-400 hover:text-zinc-200 whitespace-nowrap">
+      <span>🛒</span><span>Рынок сырья</span>
+    </button>
+  </nav>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="max-w-md mx-auto p-3.5 space-y-4">
+
+    <!-- TAB 1: PRODUCTION / LAB -->
+    <div id="view-lab" class="space-y-4">
+
+      <!-- STEP INDICATOR -->
+      <div class="bg-[#1c1714] p-2.5 rounded-2xl border border-[#332822] flex items-center justify-between text-[11px] font-mono">
+        <div id="step-dot-1" class="step-badge flex items-center space-x-1 text-copper-400 font-bold">
+          <span class="w-5 h-5 rounded-full bg-copper-600/30 border border-copper-500 flex items-center justify-center text-[10px]">1</span>
+          <span>Затор</span>
+        </div>
+        <div class="w-3 h-[1px] bg-[#332822]"></div>
+        <div id="step-dot-2" class="step-badge flex items-center space-x-1 text-zinc-500">
+          <span class="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px]">2</span>
+          <span>Брожение</span>
+        </div>
+        <div class="w-3 h-[1px] bg-[#332822]"></div>
+        <div id="step-dot-3" class="step-badge flex items-center space-x-1 text-zinc-500">
+          <span class="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px]">3</span>
+          <span id="step-3-name">Перегон</span>
+        </div>
+        <div class="w-3 h-[1px] bg-[#332822]"></div>
+        <div id="step-dot-4" class="step-badge flex items-center space-x-1 text-zinc-500">
+          <span class="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px]">4</span>
+          <span>Розлив</span>
+        </div>
+      </div>
+
+      <!-- STAGE 1: MASHING & RECIPE SETUP -->
+      <section id="stage-mashing" class="space-y-3.5">
+        <div class="bg-[#1c1714] p-3.5 rounded-2xl border border-[#332822] shadow-xl">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-copper-400 flex items-center space-x-1.5">
+              <span>🌾</span><span>Выбор напитка и затор</span>
+            </h2>
+            <span class="text-[10px] bg-zinc-800 text-amber-300 px-2 py-0.5 rounded-full font-mono">Объем: 25 л</span>
+          </div>
+
+          <!-- CATEGORY FILTER CHIPS -->
+          <div class="flex space-x-1.5 overflow-x-auto pb-1 mb-2 scrollbar-none text-[11px] font-medium">
+            <button onclick="filterPresets('all')" id="cat-all" class="cat-chip px-2.5 py-1 rounded-full bg-copper-600 text-white font-bold whitespace-nowrap">Все</button>
+            <button onclick="filterPresets('whiskey')" id="cat-whiskey" class="cat-chip px-2.5 py-1 rounded-full bg-[#261f1b] border border-[#403129] text-zinc-300 hover:text-white whitespace-nowrap">🥃 Зерновые / Виски</button>
+            <button onclick="filterPresets('brandy')" id="cat-brandy" class="cat-chip px-2.5 py-1 rounded-full bg-[#261f1b] border border-[#403129] text-zinc-300 hover:text-white whitespace-nowrap">🍇 Бренди / Вина</button>
+            <button onclick="filterPresets('agave_asia')" id="cat-agave_asia" class="cat-chip px-2.5 py-1 rounded-full bg-[#261f1b] border border-[#403129] text-zinc-300 hover:text-white whitespace-nowrap">🌴 Ром / Агава / Азия</button>
+            <button onclick="filterPresets('botanicals')" id="cat-botanicals" class="cat-chip px-2.5 py-1 rounded-full bg-[#261f1b] border border-[#403129] text-zinc-300 hover:text-white whitespace-nowrap">🌿 Травы / Джин / Абсент</button>
+            <button onclick="filterPresets('beer')" id="cat-beer" class="cat-chip px-2.5 py-1 rounded-full bg-[#261f1b] border border-[#403129] text-zinc-300 hover:text-white whitespace-nowrap">🍺 Пиво / Сидр / Мёд</button>
+          </div>
+
+          <!-- PRESETS GRID (POPULATED DYNAMICALLY WITH ALL 28 DRINKS) -->
+          <div id="presets-grid" class="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1 mb-3 scrollbar-thin">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- CURRENT ACTIVE RECIPE INFO BANNER -->
+          <div class="bg-[#171311] p-2.5 rounded-xl border border-[#2e231e] flex items-center justify-between text-xs mb-3">
+            <div class="flex items-center space-x-2">
+              <span id="active-icon" class="text-2xl">🥃</span>
+              <div>
+                <div id="active-name" class="font-bold text-copper-300">Односолодовый Шотландский Виски</div>
+                <div id="active-details" class="text-[10px] text-zinc-400">Ячменный солод • Аламбик • Дуб 3+ года</div>
+              </div>
+            </div>
+            <span id="active-abv-badge" class="text-xs bg-amber-950 text-amber-300 border border-amber-800 px-2 py-0.5 rounded-full font-mono font-bold">40%</span>
+          </div>
+
+          <!-- RAW INGREDIENTS ADJUSTMENTS -->
+          <div class="space-y-2 bg-[#171311] p-3 rounded-xl border border-[#2b221d] text-xs">
+            <div class="flex justify-between items-center">
+              <span class="text-zinc-300">Основное сырьё:</span>
+              <select id="mash-base" onchange="updateMashEstimates()" class="bg-[#261f1b] border border-[#403129] text-copper-300 rounded-lg px-2 py-1 text-xs outline-none max-w-[190px]">
+                <option value="barley_malt">Ячменный солод Pale Ale</option>
+                <option value="peated_malt">Торфяной солод (Highlands)</option>
+                <option value="corn">Кукурузная дробленка (51%+)</option>
+                <option value="rye">Ржаной солод ферментированный</option>
+                <option value="wheat">Пшеница отборная</option>
+                <option value="grapes_white">Белый виноград Уни Блан</option>
+                <option value="grapes_red">Красный виноград Каберне</option>
+                <option value="apples">Яблочный сок прямого отжима</option>
+                <option value="cherries">Дикая черешня с косточкой</option>
+                <option value="plums">Спелые сливы (Сливовица)</option>
+                <option value="molasses">Тростниковая черная меласса</option>
+                <option value="cane_juice">Свежий тростниковый сок</option>
+                <option value="agave">Голубая агава Weber (Пиньяс)</option>
+                <option value="rice_koji">Шлифованный рис + грибок Кодзи</option>
+                <option value="sorghum">Зерновое сорго (Байцзю)</option>
+                <option value="wormwood">Полынь горькая + Анис + Фенхель</option>
+                <option value="juniper">Можжевеловые ягоды + Дягиль</option>
+                <option value="herbs56">Сбор 56 трав и кореньев</option>
+                <option value="honey">Мёд натуральный липовый</option>
+              </select>
+            </div>
+
+            <div class="flex justify-between items-center">
+              <span class="text-zinc-300">Дрожжевой штамм:</span>
+              <select id="mash-yeast" onchange="updateMashEstimates()" class="bg-[#261f1b] border border-[#403129] text-amber-300 rounded-lg px-2 py-1 text-xs outline-none max-w-[190px]">
+                <option value="whiskey_yeast">Whiskey Distillers Yeast</option>
+                <option value="ale_yeast">Элевые дрожжи SafAle US-05</option>
+                <option value="lager_yeast">Лагерные низовые Saflager W-34/70</option>
+                <option value="weizen_yeast">Пшеничные баварские WB-06</option>
+                <option value="wine_yeast">Винные чистые Lalvin EC-1118</option>
+                <option value="sake_yeast">Дрожжи Кёкай №7 (Саке)</option>
+                <option value="turbo_yeast">Турбо-дрожжи 48 Vodka Pure</option>
+                <option value="wild_yeast">Дикие дрожжи (Спонтанное брожение)</option>
+              </select>
+            </div>
+
+            <!-- Predicted Wort Stats -->
+            <div class="pt-2 border-t border-[#2b221d] grid grid-cols-3 gap-2 text-center font-mono">
+              <div class="bg-[#221b17] p-1.5 rounded-lg">
+                <div class="text-[9px] text-zinc-500 uppercase">Плотность</div>
+                <div id="est-og" class="text-xs font-bold text-amber-400">1.065 SG</div>
+              </div>
+              <div class="bg-[#221b17] p-1.5 rounded-lg">
+                <div class="text-[9px] text-zinc-500 uppercase">Потенц. ABV</div>
+                <div id="est-abv" class="text-xs font-bold text-copper-400">~8.5%</div>
+              </div>
+              <div class="bg-[#221b17] p-1.5 rounded-lg">
+                <div class="text-[9px] text-zinc-500 uppercase">Процесс</div>
+                <div id="est-type" class="text-xs font-bold text-emerald-400">Дистиллят</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MASHING COOKING SIMULATION -->
+          <div id="mash-temp-panel" class="mt-3 bg-[#171311] p-3 rounded-xl border border-[#2b221d] space-y-2.5">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-copper-400">Температурная пауза:</span>
+              <span id="mash-current-pause" class="text-amber-400 font-mono font-bold">Осахаривание (64°C)</span>
+            </div>
+            
+            <div class="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
+              <div id="mash-progress" class="bg-gradient-to-r from-copper-500 to-amber-400 h-full w-0 transition-all duration-300"></div>
+            </div>
+
+            <div class="flex items-center justify-between text-[10px] text-zinc-400">
+              <span id="mash-status-text">Перемешивание солода и ферментация крахмала...</span>
+              <span id="mash-timer-text" class="font-mono text-copper-300 font-bold">0%</span>
+            </div>
+
+            <button onclick="startMashingProcess()" id="start-mash-btn" class="w-full py-3 bg-gradient-to-r from-copper-600 to-amber-600 hover:from-copper-500 hover:to-amber-500 active:scale-98 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+              <span>🔥</span><span>Затереть солод и нагреть</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 2: FERMENTATION TANK -->
+      <section id="stage-fermentation" class="space-y-4 hidden">
+        <div class="bg-[#1c1714] p-4 rounded-2xl border border-[#332822] shadow-xl relative overflow-hidden">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center space-x-1.5">
+              <span>🫧</span><span>Бродильный Чан (ЦКТ)</span>
+            </h2>
+            <span class="text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-mono animate-pulse">Брожение активно</span>
+          </div>
+
+          <div class="bg-[#15110f] border border-[#2e231e] rounded-xl p-4 flex items-center justify-center relative h-36">
+            <div class="text-center space-y-1 z-10">
+              <div class="text-4xl" id="airlock-icon">🍾</div>
+              <div class="text-xs text-zinc-400">Гидрозатвор булькает: <span id="co2-rate" class="text-amber-400 font-mono font-bold">42 пузырька/мин</span></div>
+              <div class="text-[10px] text-zinc-500 font-mono">Дрожжи расщепляют сахара в этанол + CO₂</div>
+            </div>
+
+            <div class="absolute inset-0 pointer-events-none overflow-hidden">
+              <div class="absolute bottom-4 left-1/3 w-3 h-3 bg-amber-400/30 rounded-full bubble-anim"></div>
+              <div class="absolute bottom-2 left-1/2 w-4 h-4 bg-copper-400/40 rounded-full bubble-anim" style="animation-delay: 0.6s;"></div>
+              <div class="absolute bottom-5 left-2/3 w-2 h-2 bg-amber-300/50 rounded-full bubble-anim" style="animation-delay: 1.1s;"></div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 mt-3 font-mono text-center">
+            <div class="bg-[#221b17] p-2 rounded-xl border border-[#332822]">
+              <div class="text-[9px] text-zinc-400">ПЛОТНОСТЬ (SG)</div>
+              <div id="ferm-sg" class="text-xs font-bold text-amber-400">1.045</div>
+              <div class="text-[9px] text-zinc-500">начало: 1.065</div>
+            </div>
+            <div class="bg-[#221b17] p-2 rounded-xl border border-[#332822]">
+              <div class="text-[9px] text-zinc-400">ГРАДУС БРАГИ</div>
+              <div id="ferm-abv" class="text-xs font-bold text-copper-400">4.2%</div>
+              <div class="text-[9px] text-zinc-500">цель: ~8.8%</div>
+            </div>
+            <div class="bg-[#221b17] p-2 rounded-xl border border-[#332822]">
+              <div class="text-[9px] text-zinc-400">ТЕМПЕРАТУРА</div>
+              <div id="ferm-temp" class="text-xs font-bold text-emerald-400">22.4°C</div>
+              <div class="text-[9px] text-zinc-500">норма</div>
+            </div>
+          </div>
+
+          <div class="mt-4 space-y-2">
+            <div class="flex justify-between text-xs">
+              <span class="text-zinc-400">Прогресс созревания браги (Дней: <span id="ferm-days" class="text-amber-400 font-mono">1</span>/7):</span>
+              <span id="ferm-percent" class="font-mono text-copper-300 font-bold">20%</span>
+            </div>
+            <div class="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+              <div id="ferm-progress-bar" class="bg-gradient-to-r from-amber-500 to-copper-500 h-full w-[20%] transition-all duration-300"></div>
+            </div>
+
+            <div class="flex space-x-2 pt-2">
+              <button onclick="accelerateFermentation()" class="flex-1 py-2.5 bg-[#261f1b] hover:bg-[#332822] border border-[#403129] rounded-xl text-xs font-bold text-amber-300 transition">
+                ⏩ Пропустить день (+24 ч)
+              </button>
+              <button onclick="finishFermentation()" id="finish-ferm-btn" disabled class="flex-1 py-2.5 bg-zinc-700 text-zinc-400 cursor-not-allowed rounded-xl text-xs font-bold transition">
+                ✅ Снять с осадка
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 3: INTERACTIVE DISTILLATION STILL -->
+      <section id="stage-distillation" class="space-y-4 hidden">
+        <div class="bg-[#1c1714] p-4 rounded-2xl border border-copper-700/60 shadow-2xl relative overflow-hidden">
+          
+          <div class="flex items-center justify-between border-b border-[#332822] pb-2.5 mb-3">
+            <div>
+              <h2 class="text-xs font-bold uppercase tracking-wider text-copper-400 flex items-center space-x-1.5">
+                <span>⚗️</span><span>Медный Аламбик / Колонна</span>
+              </h2>
+              <p class="text-[10px] text-zinc-400">Управляй ТЭНом: отсекай головы и сивуху!</p>
+            </div>
+            <div id="still-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-zinc-800 text-zinc-400 border border-zinc-700">
+              Куб холодный
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5 items-center bg-[#15110f] p-3 rounded-xl border border-[#2e231e]">
+            
+            <!-- Dial Thermometer -->
+            <div class="flex flex-col items-center justify-center p-2 bg-[#1d1613] rounded-xl border border-[#3b2b22] relative">
+              <div class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest mb-1">Термометр пара</div>
+              <div class="relative w-24 h-24 flex items-center justify-center">
+                <svg viewBox="0 0 100 100" class="w-full h-full">
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="#261f1b" stroke-width="8" />
+                  <path d="M 20 70 A 42 42 0 0 1 35 25" fill="none" stroke="#3b82f6" stroke-width="8" stroke-linecap="round" />
+                  <path d="M 37 23 A 42 42 0 0 1 65 23" fill="none" stroke="#10b981" stroke-width="8" />
+                  <path d="M 67 25 A 42 42 0 0 1 80 70" fill="none" stroke="#b45309" stroke-width="8" stroke-linecap="round" />
+                  <line id="gauge-needle" x1="50" y1="50" x2="50" y2="16" stroke="#f43f5e" stroke-width="3" stroke-linecap="round" style="transform-origin: 50px 50px; transform: rotate(-110deg);" />
+                  <circle cx="50" cy="50" r="5" fill="#f43f5e" />
+                </svg>
+                <div class="absolute bottom-1 text-center">
+                  <span id="still-temp-display" class="font-mono text-base font-extrabold text-amber-300">20.0</span>
+                  <span class="text-[10px] text-zinc-400 font-mono">°C</span>
+                </div>
+              </div>
+              <div id="temp-zone-hint" class="text-[9px] font-mono text-zinc-400 mt-1">Ожидание нагрева</div>
+            </div>
+
+            <!-- Condenser Drip & Stream output -->
+            <div class="flex flex-col justify-between h-full p-2 bg-[#1d1613] rounded-xl border border-[#3b2b22]">
+              <div>
+                <div class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest">Текущая фракция</div>
+                <div id="current-fraction-name" class="text-xs font-bold font-mono text-zinc-500 mt-0.5">НЕТ КАПЕЛЬ</div>
+              </div>
+
+              <div class="py-1 flex items-center justify-center space-x-2">
+                <span class="text-xl" id="still-drip-icon">💧</span>
+                <div class="text-left font-mono">
+                  <div class="text-xs font-bold text-copper-300" id="flow-rate-text">0 мл/мин</div>
+                  <div class="text-[9px] text-zinc-400" id="flow-strength-text">Крепость: 0%</div>
+                </div>
+              </div>
+
+              <div class="bg-[#14100e] p-1.5 rounded-lg border border-[#2b201a] text-[9px] font-mono flex justify-between">
+                <span class="text-zinc-500">В кубе:</span>
+                <span id="boiler-volume-left" class="text-amber-400 font-bold">20.0 л</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- FRACTIONS CUT BUTTONS -->
+          <div class="space-y-1.5 mt-3">
+            <label class="block text-xs font-bold text-zinc-300">Приемная емкость (куда направить струйку?):</label>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button onclick="switchFractionCut('heads')" id="cut-heads-btn" class="p-2 rounded-xl border-2 border-blue-500/80 bg-blue-950/40 text-blue-300 font-mono text-xs font-bold flex flex-col items-center justify-center active:scale-95 transition">
+                <span class="text-sm">⚠️</span>
+                <span>ГОЛОВЫ</span>
+                <span class="text-[9px] text-zinc-400" id="heads-vol">0 мл</span>
+              </button>
+
+              <button onclick="switchFractionCut('hearts')" id="cut-hearts-btn" class="p-2 rounded-xl border border-zinc-700 bg-[#261f1b] text-zinc-400 font-mono text-xs font-bold flex flex-col items-center justify-center active:scale-95 transition">
+                <span class="text-sm">⭐</span>
+                <span>ТЕЛО (СЕРДЦЕ)</span>
+                <span class="text-[9px] text-zinc-400" id="hearts-vol">0 мл</span>
+              </button>
+
+              <button onclick="switchFractionCut('tails')" id="cut-tails-btn" class="p-2 rounded-xl border border-zinc-700 bg-[#261f1b] text-zinc-400 font-mono text-xs font-bold flex flex-col items-center justify-center active:scale-95 transition">
+                <span class="text-sm">🛑</span>
+                <span>ХВОСТЫ</span>
+                <span class="text-[9px] text-zinc-400" id="tails-vol">0 мл</span>
+              </button>
+            </div>
+            <div class="text-[10px] text-zinc-400 italic">
+              💡 <span id="distill-advice">Нагревай до 70°C, сбавь мощность и отбирай головы. На 78.2°C переключай на ТЕЛО!</span>
+            </div>
+          </div>
+
+          <!-- POWER HEATER CONTROLLER -->
+          <div class="mt-3 bg-[#171311] p-3 rounded-xl border border-[#2b221d] space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-copper-400">Мощность ТЭНа куба:</span>
+              <span id="heater-power-val" class="text-amber-400 font-mono font-bold">1800 Вт</span>
+            </div>
+            <input type="range" id="heater-slider" min="0" max="3000" step="100" value="1800" oninput="adjustHeaterPower(this.value)" class="w-full accent-copper-500 cursor-pointer h-2 bg-zinc-800 rounded-lg">
+          </div>
+
+          <div class="flex space-x-2 pt-1">
+            <button onclick="toggleStillPower()" id="still-power-btn" class="flex-1 py-3 bg-gradient-to-r from-copper-600 to-amber-600 hover:from-copper-500 hover:to-amber-500 font-bold rounded-xl text-white text-xs shadow-lg transition">
+              ▶️ Включить нагрев
+            </button>
+            <button onclick="finishDistillation()" id="finish-still-btn" class="py-3 px-3.5 bg-[#261f1b] hover:bg-[#332822] border border-[#403129] font-bold rounded-xl text-copper-300 text-xs transition">
+              🛑 Завершить
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 4: PROOFING, OAK AGING & BOTTLING -->
+      <section id="stage-bottling" class="space-y-4 hidden">
+        <div class="bg-[#1c1714] p-4 rounded-2xl border border-[#332822] shadow-xl space-y-3.5">
+          <div class="flex items-center justify-between border-b border-[#332822] pb-2.5">
+            <div>
+              <h2 class="text-xs font-bold uppercase tracking-wider text-copper-400 flex items-center space-x-1.5">
+                <span>🪵</span><span>Выдержка в бочках, Купаж & Розлив</span>
+              </h2>
+              <p class="text-[10px] text-zinc-400">Доведи свой напиток до совершенства</p>
+            </div>
+            <span class="text-xs bg-zinc-800 text-copper-300 px-2 py-0.5 rounded-full font-mono" id="raw-spirit-volume">Тело: 2.4 л</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div class="bg-[#171311] p-2 rounded-xl border border-[#2b221d]">
+              <span class="text-zinc-500 text-[9px] block">КРЕПОСТЬ СЫРЦА</span>
+              <span id="raw-spirit-abv" class="text-sm font-bold text-copper-400">76.5% ABV</span>
+            </div>
+            <div class="bg-[#171311] p-2 rounded-xl border border-[#2b221d]">
+              <span class="text-zinc-500 text-[9px] block">ЧИСТОТА ТЕЛА</span>
+              <span id="raw-spirit-purity" class="text-sm font-bold text-emerald-400">97.8%</span>
+            </div>
+          </div>
+
+          <!-- OAK BARREL SELECTION -->
+          <div class="bg-[#171311] p-3 rounded-xl border border-[#2b221d] space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-amber-300">Тип дубовой бочки:</span>
+              <span class="text-[10px] text-zinc-400">Для созревания</span>
+            </div>
+
+            <select id="barrel-type-select" onchange="updateProofingStats()" class="w-full bg-[#261f1b] border border-[#403129] text-copper-300 rounded-lg p-2 text-xs outline-none">
+              <option value="none">Без выдержки (Белый дистиллят / Водка / Джин / Пиво)</option>
+              <option value="american_oak">Американский белый дуб (Ваниль, кокос, карамель)</option>
+              <option value="charred_bourbon">Сильно обожженный дуб Alligator (Дым, шоколад, бурбон)</option>
+              <option value="french_sherry">Французский дуб из-под хереса Oloroso (Сухофрукты, мускат)</option>
+              <option value="cognac_limousin">Лимузенский дуб из-под Коньяка (Богатые танины, специи)</option>
+              <option value="port_cask">Бочка из-под портвейна Tawny (Красные ягоды, инжир)</option>
+            </select>
+
+            <div id="aging-duration-panel" class="space-y-1 pt-1 hidden">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-zinc-400">Срок созревания:</span>
+                <span id="aging-years-label" class="text-copper-400 font-bold">3 года</span>
+              </div>
+              <input type="range" id="aging-slider" min="0" max="15" step="1" value="3" oninput="updateAgingSlider(this.value)" class="w-full accent-copper-500 cursor-pointer h-2 bg-zinc-800 rounded-lg">
+            </div>
+          </div>
+
+          <!-- WATER PROOFING -->
+          <div class="bg-[#171311] p-3 rounded-xl border border-[#2b221d] space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-cyan-300">Разбавление родниковой водой:</span>
+              <span id="target-abv-label" class="text-cyan-400 font-mono font-bold">Цель: 40%</span>
+            </div>
+            <input type="range" id="dilution-slider" min="30" max="75" step="1" value="40" oninput="updateDilutionSlider(this.value)" class="w-full accent-cyan-500 cursor-pointer h-2 bg-zinc-800 rounded-lg">
+            
+            <div class="flex justify-between text-[10px] text-zinc-400 font-mono">
+              <span>Добавить воды: <b id="water-needed-val" class="text-cyan-300">2.19 л</b></span>
+              <span>Итого бутылок: <b id="bottles-count-val" class="text-amber-400">9 шт.</b></span>
+            </div>
+          </div>
+
+          <!-- BRANDING -->
+          <div class="bg-[#171311] p-3 rounded-xl border border-[#2b221d] space-y-1.5">
+            <label class="block text-xs font-bold text-copper-300">Название твоей крафтовой марки:</label>
+            <input type="text" id="brand-name-input" value="Artisan Master Reserve" maxlength="32" class="w-full bg-[#261f1b] border border-[#403129] text-amber-200 rounded-lg px-3 py-2 text-xs outline-none">
+          </div>
+
+          <button onclick="finishBottlingAndEvaluate()" class="w-full py-3.5 bg-gradient-to-r from-copper-600 via-amber-600 to-copper-600 hover:from-copper-500 hover:to-amber-500 font-bold rounded-xl text-white text-xs shadow-xl transition flex items-center justify-center space-x-2">
+            <span>🍾</span><span>Разлить и сдать на дегустацию сомелье</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- STAGE 5: SOMMELIER LAB REPORT -->
+      <section id="stage-evaluation" class="space-y-4 hidden">
+        <div class="bg-[#1c1714] p-5 rounded-2xl border border-amber-600/50 shadow-2xl space-y-4">
+          <div class="text-center space-y-1">
+            <div class="text-4xl">🏆</div>
+            <h2 id="eval-title" class="text-lg font-extrabold text-amber-300">Партия Оценена!</h2>
+            <div id="eval-brand" class="text-xs text-copper-400 font-serif italic">«Artisan Master Reserve»</div>
+          </div>
+
+          <div class="bg-[#171311] p-4 rounded-xl border border-[#2b221d] space-y-3">
+            <div class="flex items-center justify-between border-b border-[#2b221d] pb-2">
+              <span class="text-xs text-zinc-400">Оценка экспертов-сомелье:</span>
+              <div class="flex items-center space-x-1">
+                <span class="text-2xl font-black text-amber-400 font-mono" id="eval-score">93</span>
+                <span class="text-xs text-zinc-500">/ 100</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="text-[9px] text-zinc-500 uppercase tracking-wider mb-1">Органолептический дегустационный профиль:</div>
+              <div id="eval-tasting-notes" class="text-xs text-zinc-200 italic bg-[#1f1814] p-2.5 rounded-lg border border-[#3b2b22] leading-relaxed">
+                Загрузка отзыва...
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-center font-mono text-[10px] pt-1">
+              <div class="bg-[#241c18] p-1.5 rounded-lg">
+                <div class="text-[9px] text-zinc-400">КРЕПОСТЬ</div>
+                <div id="eval-abv" class="font-bold text-copper-400">40.0%</div>
+              </div>
+              <div class="bg-[#241c18] p-1.5 rounded-lg">
+                <div class="text-[9px] text-zinc-400">ЧИСТОТА</div>
+                <div id="eval-purity" class="font-bold text-emerald-400">98%</div>
+              </div>
+              <div class="bg-[#241c18] p-1.5 rounded-lg">
+                <div class="text-[9px] text-zinc-400">ВЫДЕРЖКА</div>
+                <div id="eval-aging" class="font-bold text-amber-300">3 года</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-br from-[#241a14] to-[#1a130f] p-3.5 rounded-xl border border-copper-700/60 flex items-center justify-between">
+            <div>
+              <div class="text-xs text-zinc-300">Объем партии: <b id="eval-bottles-num" class="text-amber-300 font-mono">9</b> бут. (0.5 л)</div>
+              <div class="text-[10px] text-zinc-400">Рыночная цена: <b id="eval-price-per-bottle" class="text-emerald-400 font-mono">650</b> ₽ / бут.</div>
+            </div>
+            <div class="text-right">
+              <div class="text-[9px] text-zinc-400">Выручка партии</div>
+              <div class="text-base font-black text-amber-300 font-mono" id="eval-total-revenue">+5,850 ₽</div>
+            </div>
+          </div>
+
+          <button onclick="sellBatchAndNewGame()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 font-bold rounded-xl text-white text-xs shadow-xl transition flex items-center justify-center space-x-2">
+            <span>💰</span><span>Продать партию и сварить новый напиток</span>
+          </button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- TAB 2: RECIPE ENCYCLOPEDIA (28 WORLD DRINKS) -->
+    <div id="view-recipes" class="space-y-4 hidden">
+      <div class="bg-[#1c1714] p-4 rounded-2xl border border-[#332822]">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-copper-400 mb-1 flex items-center space-x-1.5">
+          <span>📖</span><span>Мировая Алко-Энциклопедия (28 напитков)</span>
+        </h2>
+        <p class="text-[11px] text-zinc-400 mb-3">Технологические карты, пропорции, температурные паузы и культура употребления:</p>
+
+        <!-- Search bar inside encyclopedia -->
+        <input type="text" id="recipe-search-input" oninput="searchRecipes(this.value)" placeholder="🔍 Поиск (виски, коньяк, саке, абсент, пиво...)" class="w-full bg-[#261f1b] border border-[#403129] text-amber-200 rounded-xl px-3 py-2 text-xs mb-3 outline-none">
+
+        <div class="space-y-3" id="recipes-list">
+          <!-- Dynamically filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: OAK CELLAR -->
+    <div id="view-cellar" class="space-y-4 hidden">
+      <div class="bg-[#1c1714] p-4 rounded-2xl border border-[#332822]">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center space-x-1.5">
+            <span>🪵</span><span>Погреб выдержки бочек</span>
+          </h2>
+          <span class="text-xs bg-zinc-800 text-copper-300 px-2 py-0.5 rounded-full font-mono">Бочек: 4 / 12</span>
+        </div>
+        <p class="text-[11px] text-zinc-400 mb-4">Здесь отдыхают спирты. С каждым годом дуб насыщает напиток танинами, ванилином и карамелью («доля ангелов» уносит 2-3% спирта в год).</p>
+
+        <div class="space-y-2.5" id="cellar-barrels-list">
+          <!-- Barrel items -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: STORE -->
+    <div id="view-store" class="space-y-4 hidden">
+      <div class="bg-[#1c1714] p-4 rounded-2xl border border-[#332822]">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2 flex items-center space-x-1.5">
+          <span>🛒</span><span>Рынок сырья и оборудования</span>
+        </h2>
+        <p class="text-[11px] text-zinc-400 mb-3">Покупай элитные ингредиенты на выручку с продаж:</p>
+
+        <div class="space-y-2" id="store-items-list">
+          <!-- Store items -->
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
